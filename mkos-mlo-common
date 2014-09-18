@@ -104,8 +104,9 @@ test -n "$ROOTFSTYPE" || fatal "$USAGE"
 #       (truncate can deal with the M, but sfdisk can't)
 : ${SIZE:=${MKOS_SIZE:-`echo ${DEFAULT_SIZE}*1024*1024 | bc`}}
 
-# TODO: this probably needs bullet-proofing
+# TODO: this probably needs more bullet-proofing
 TARFILE=`echo $IMAGE | sed s/img/tgz/g`
+test -n "$TARFILE" || fatal cannot define a tarfile
 
 test ! -e $IMAGE || fatal "refusing to overwrite $IMAGE"
 test ! -e $TARFILE || fatal "refusing to overwrite $TARFILE"
