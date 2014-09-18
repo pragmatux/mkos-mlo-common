@@ -1,0 +1,165 @@
+#!/bin/sh
+set -e -u
+
+# Creates a small SD card image for platforms that use MLO.
+#
+# For reference, this script creates a disk image similar to what you
+# would get with the following commands:
+#
+#   sudo dd if=/dev/zero of=${DEFAULT_IMAGE} bs=1M count=${DEFAULT_SIZE}
+#   sudo sfdisk --in-order --Linux --unit M ${DEFAULT_IMAGE} <<-__EOF__
+#   1,48,0xE,*
+#   ,,,-
+#   __EOF__
+#
+
+do_cat_config=0
+
+DEFAULT_IMAGE=ptux.img
+DEFAULT_ROOTFSTYPE=ext3
+DEFAULT_DEVICE=""
+DEFAULT_IMAGE=ptux.img
+DEFAULT_CONFIG=""
+
+# TODO: for now, assume "M" but it'd be nice to parse this for "K", "G", and so on
+DEFAULT_SIZE=512
+
+USAGE="${0##./}"' [-C] [-c config] [package]
+  Options:
+    -C          print default config template to stdout and exit
+    -c config   use file <config> as alternate config template
+    -n image    use <image> as the output image filename
+    -p package  use <package> as the base package name
+
+  Environment:
+    The command line takes precedence over the environment.
+    MKOS_CONFIG  - multistrap configuration
+    MKOS_PACKAGE - root package
+'
+
+fatal () {
+	echo "$@" >&2
+	exit 1
+}
+
+: ${ROOTFSTYPE:=${MKOS_ROOTFSTYPE:-$DEFAULT_ROOTFSTYPE}}
+: ${DEVICE:=${MKOS_DEVICE:-$DEFAULT_DEVICE}}
+: ${IMAGE:=${MKOS_IMAGE:-$DEFAULT_IMAGE}}
+: ${CONFIG:=${MKOS_CONFIG:-$DEFAULT_CONFIG}}
+
+while [ "$#" != 0 ]
+do
+	case "$1,${2-}" in
+		-p,?*)
+			DEVICE="$2"
+			shift
+			shift
+			;;
+		-c,?*)
+			CONFIG="$2"
+			shift
+			shift
+			;;
+		-C,*)
+			do_cat_config=1
+			shift
+			;;
+		-n,?*|--image-name,?*)
+			IMAGE="$2"
+			shift
+			shift
+			;;
+		-h,*|--help,*)
+			man ${0##*/}
+			exit
+			;;
+		-*)
+			fatal "$USAGE"
+			;;
+		*)
+			if [ -z "${DEVICE:-}" ]; then
+				DEVICE="$1"
+				shift
+			else
+				fatal "$USAGE"
+			fi
+			;;
+	esac
+done
+
+if [ $do_cat_config -ge 1 ] ; then
+    cat ${CONFIG}
+    exit
+fi
+
+test -n "$DEVICE" || fatal "$USAGE"
+test -n "$CONFIG" || fatal "$USAGE"
+test -r $CONFIG || fatal cannot read $CONFIG
+test -n "$IMAGE" || fatal "$USAGE"
+test -n "$ROOTFSTYPE" || fatal "$USAGE"
+
+
+# TODO: assumes megabytes for DEFAULT_SIZE; fix this
+# TODO: it'd be nice if MKOS_SIZE could use "M", etc. as well
+#       (truncate can deal with the M, but sfdisk can't)
+: ${SIZE:=${MKOS_SIZE:-`echo ${DEFAULT_SIZE}*1024*1024 | bc`}}
+
+# TODO: this probably needs bullet-proofing
+TARFILE=`echo $IMAGE | sed s/img/tgz/g`
+
+test ! -e $IMAGE || fatal "refusing to overwrite $IMAGE"
+test ! -e $TARFILE || fatal "refusing to overwrite $TARFILE"
+
+cleanup () {
+	rm -rf $TEMPCONFIG $TEMPMOUNT $IMAGE $TARFILE
+}
+trap "cleanup; exit" INT TERM EXIT
+
+TEMPCONFIG=$(mktemp --tmpdir mkos-${DEVICE}.mstrap.XXXXXXXX)
+sed -e "s/{{device-package}}/$DEVICE/" $CONFIG >$TEMPCONFIG
+TEMPMOUNT=$(mktemp -d --tmpdir mkos-${DEVICE}.mount.XXXXXXXX)
+
+GUESTFISH=/usr/bin/guestfish
+MULTISTRAP=/usr/sbin/multistrap
+
+$MULTISTRAP -f $TEMPCONFIG -d $TEMPMOUNT
+
+echo "Creating ${TARFILE}..."
+tar czf $TARFILE -C $TEMPMOUNT .
+
+# don't change these unless you know what you're doing...
+SFDISK=/sbin/sfdisk
+SECTORBYTES=512
+SECTORSPERCYLINDER=63
+HEADS=255
+
+CYLINDERS=`echo $SIZE/$HEADS/$SECTORSPERCYLINDER/$SECTORBYTES | bc`
+
+echo "Creating ${IMAGE}..."
+truncate --size=$SIZE $IMAGE
+
+# TODO: the "11" below is the number of cylinders (?) of the first
+#       partition, which is equivalent to its size; do we want
+#       to make this configurable? ratiometric to the overall size?
+PART1CYL=11
+{ echo ,$PART1CYL,0xc,*; echo ,,,-; } \
+    | $SFDISK -D -H $HEADS -S $SECTORSPERCYLINDER -C $CYLINDERS $IMAGE 2>&1 > /dev/null
+
+$GUESTFISH -a $IMAGE 2>&1 > /dev/null <<__EOF__
+run
+list-partitions
+mkfs-opts msdos /dev/vda1
+mkfs-opts $ROOTFSTYPE /dev/vda2
+mount /dev/vda2 /
+mkdir /boot
+mount /dev/vda1 /boot
+lcd $TEMPMOUNT
+copy-in . /
+__EOF__
+
+
+rm -r $TEMPMOUNT
+rm $TEMPCONFIG
+
+trap - INT TERM EXIT
+
