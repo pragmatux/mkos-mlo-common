@@ -69,6 +69,11 @@ do
 			shift
 			shift
 			;;
+		-f,?*)
+			ROOTFSTYPE="$2"
+			shift
+			shift
+			;;
 		-h,*|--help,*)
 			man ${0##*/}
 			exit
