@@ -28,8 +28,6 @@ USAGE="${0##./}"' [-C] [-c config] [package]
   Options:
     -C          print default config template to stdout and exit
     -c config   use file <config> as alternate config template
-    -f fstype   use <fstype> as the root filesystem type
-                (the boot partition is always msdos)
     -n image    use <image> as the output image filename
     -p package  use <package> as the base package name
 
@@ -153,8 +151,6 @@ PART1CYL=11
 { echo ,$PART1CYL,0xc,*; echo ,,,-; } \
     | $SFDISK -D -H $HEADS -S $SECTORSPERCYLINDER -C $CYLINDERS $IMAGE 2>&1 > /dev/null
 
-# TODO: the copy-in gets upset with forward timestamps, hence
-# the leading hyphen to turn off errors; but, this seems dangerous
 $GUESTFISH -a $IMAGE 2>&1 > /dev/null <<__EOF__
 run
 list-partitions
@@ -164,7 +160,7 @@ mount /dev/vda2 /
 mkdir /boot
 mount /dev/vda1 /boot
 lcd $TEMPMOUNT
--copy-in . /
+copy-in . /
 __EOF__
 
 
