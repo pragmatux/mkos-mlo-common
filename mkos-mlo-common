@@ -158,8 +158,10 @@ mkfs-opts msdos /dev/vda1
 mkfs-opts $ROOTFSTYPE /dev/vda2
 mount /dev/vda2 /
 mkdir /boot
-mount /dev/vda1 /boot
+lcd $TEMPMOUNT/boot
+copy-in . /boot
 lcd $TEMPMOUNT
+mount /dev/vda1 /boot
 copy-in . /
 __EOF__
 
