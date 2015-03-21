@@ -24,7 +24,7 @@ DEFAULT_CONFIG=""
 # TODO: for now, assume "M" but it'd be nice to parse this for "K", "G", and so on
 DEFAULT_SIZE=512
 
-USAGE="${0##./}"' [-C] [-c config] [package]
+USAGE="${0##./}"' [-C] [-c config] [-p package]
   Options:
     -C          print default config template to stdout and exit
     -c config   use file <config> as alternate config template
