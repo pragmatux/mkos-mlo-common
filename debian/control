@@ -9,6 +9,6 @@ Vcs-Browser: https://github.com/bgat/mkos-mlo-common.git
 
 Package: mkos-mlo-common
 Architecture: all
-Depends: multistrap, util-linux, guestfish, bc, ${misc:Depends}
+Depends: multistrap, util-linux, libguestfs-tools | guestfish, bc, ${misc:Depends}
 Description: Composes filesystem images for MLO-based targets
  This package is part of Pragmatux http://pragmatux.org
