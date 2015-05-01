@@ -18,23 +18,22 @@ do_cat_config=0
 DEFAULT_IMAGE=ptux.img
 DEFAULT_ROOTFSTYPE=ext3
 DEFAULT_DEVICE=""
-DEFAULT_IMAGE=ptux.img
 DEFAULT_CONFIG=""
+DEFAULT_FSSIZEMB=512
 
-# TODO: for now, assume "M" but it'd be nice to parse this for "K", "G", and so on
-DEFAULT_SIZE=512
-
-USAGE="${0##./}"' [-C] [-c config] [-p package]
+USAGE="${0##./}"' [-C] [-c <config-file>] [-d <size-mb>] [-p <package-name>]
   Options:
-    -C          print default config template to stdout and exit
-    -c config   use file <config> as alternate config template
-    -n image    use <image> as the output image filename
-    -p package  use <package> as the base package name
+    -C            print default config template to stdout and exit
+    -c <config>   use file <config> as alternate config template
+    -d <size>     use <size> (in MB) for the filesystem image
+    -n <image>    use <image> as the output image filename
+    -p <package>  use <package> as the base package name
 
   Environment:
     The command line takes precedence over the environment.
-    MKOS_CONFIG  - multistrap configuration
-    MKOS_PACKAGE - root package
+    MKOS_CONFIG    - multistrap configuration
+    MKOS_PACKAGE   - root package
+    MKOS_FSSIZEMB  - default filesystem size (in MB)
 '
 
 fatal () {
@@ -46,6 +45,7 @@ fatal () {
 : ${DEVICE:=${MKOS_DEVICE:-$DEFAULT_DEVICE}}
 : ${IMAGE:=${MKOS_IMAGE:-$DEFAULT_IMAGE}}
 : ${CONFIG:=${MKOS_CONFIG:-$DEFAULT_CONFIG}}
+: ${SIZE:=${MKOS_FSSIZEMB:-$DEFAULT_FSSIZEMB}}
 
 while [ "$#" != 0 ]
 do
@@ -62,6 +62,11 @@ do
 			;;
 		-C,*)
 			do_cat_config=1
+			shift
+			;;
+		-d,?*|--filesystem-size,?*)
+			SIZE="$2"
+			shift
 			shift
 			;;
 		-n,?*|--image-name,?*)
@@ -104,10 +109,9 @@ test -n "$IMAGE" || fatal "$USAGE"
 test -n "$ROOTFSTYPE" || fatal "$USAGE"
 
 
-# TODO: assumes megabytes for DEFAULT_SIZE; fix this
-# TODO: it'd be nice if MKOS_SIZE could use "M", etc. as well
+# TODO: it'd be nice if SIZE could use "M", etc. to express units
 #       (truncate can deal with the M, but sfdisk can't)
-: ${SIZE:=${MKOS_SIZE:-`echo ${DEFAULT_SIZE}*1024*1024 | bc`}}
+SIZE=`echo ${SIZE}*1024*1024 | bc`
 
 # TODO: this probably needs more bullet-proofing
 TARFILE=`echo $IMAGE | sed s/img/tgz/g`
