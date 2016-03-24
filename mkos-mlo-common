@@ -170,8 +170,14 @@ copy-in . /
 __EOF__
 
 
-rm -r $TEMPMOUNT
-rm $TEMPCONFIG
+# don't blow away the tmp files unless
+# we're running standalone (i.e. not just
+# helping another script that sourced us)
+if [[ $0 == *"mkos-mlo-common"* ]]
+then
+    rm -r $TEMPMOUNT
+    rm $TEMPCONFIG
+fi
 
 trap - INT TERM EXIT
 
