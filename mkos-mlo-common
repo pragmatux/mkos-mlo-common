@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -e -u
 
 # Creates a small SD card image for platforms that use MLO.
