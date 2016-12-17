@@ -19,7 +19,7 @@ DEFAULT_IMAGE=ptux.img
 DEFAULT_ROOTFSTYPE=ext3
 DEFAULT_DEVICE=""
 DEFAULT_CONFIG=""
-DEFAULT_FSSIZEMB=512
+DEFAULT_FSSIZEMB=1024
 
 USAGE="${0##./}"' [-C] [-c <config-file>] [-d <size-mb>] [-p <package-name>]
   Options:
