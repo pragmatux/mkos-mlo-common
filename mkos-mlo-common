@@ -14,6 +14,7 @@ set -e -u
 #
 
 do_cat_config=0
+do_save_tgz=0
 
 DEFAULT_IMAGE=ptux.img
 DEFAULT_ROOTFSTYPE=ext3
@@ -80,7 +81,7 @@ do
 			shift
 			shift
 			;;
-		-z,?*)
+		-z,*)
 			do_save_tgz=1
 			shift
 			;;
