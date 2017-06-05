@@ -28,6 +28,7 @@ USAGE="${0##./}"' [-C] [-c <config-file>] [-d <size-mb>] [-p <package-name>]
     -d <size>     use <size> (in MB) for the filesystem image
     -n <image>    use <image> as the output image filename
     -p <package>  use <package> as the base package name
+    -z            include ptux.tgz in output filesystem image
 
   Environment:
     The command line takes precedence over the environment.
@@ -83,6 +84,10 @@ do
 			man ${0##*/}
 			exit
 			;;
+		-z)
+			do_save_tgz=1
+			shift
+			;;
 		-*)
 			fatal "$USAGE"
 			;;
@@ -136,6 +141,9 @@ $MULTISTRAP -f $TEMPCONFIG -d $TEMPMOUNT
 
 echo "Creating ${TARFILE}..."
 tar czf $TARFILE -C $TEMPMOUNT .
+if [ $do_save_tgz -ge 1 ] ; then
+    cp $TARFILE $TEMPMOUNT/root
+fi
 
 # don't change these unless you know what you're doing...
 SFDISK=/sbin/sfdisk
