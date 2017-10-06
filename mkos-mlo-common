@@ -17,10 +17,11 @@ do_cat_config=0
 do_save_tgz=0
 
 DEFAULT_IMAGE=ptux.img
-DEFAULT_ROOTFSTYPE=ext3
+DEFAULT_ROOTFSTYPE=ext4
 DEFAULT_DEVICE=""
 DEFAULT_CONFIG=""
 DEFAULT_FSSIZEMB=1024
+DEFAULT_PART1SIZE=352816
 
 USAGE="${0##./}"' [-C] [-z] [-c <config-file>] [-d <size-mb>] [-p <package-name>]
   Options:
@@ -48,6 +49,7 @@ fatal () {
 : ${IMAGE:=${MKOS_IMAGE:-$DEFAULT_IMAGE}}
 : ${CONFIG:=${MKOS_CONFIG:-$DEFAULT_CONFIG}}
 : ${SIZE:=${MKOS_FSSIZEMB:-$DEFAULT_FSSIZEMB}}
+PART1SIZE=${DEFAULT_PART1SIZE}
 
 while [ "$#" != 0 ]
 do
@@ -151,17 +153,13 @@ SFDISK=/sbin/sfdisk
 echo "Creating ${IMAGE}..."
 truncate --size=$SIZE $IMAGE
 
-# TODO: the "11" below is the number of cylinders (?) of the first
-#       partition, which is equivalent to its size; do we want
-#       to make this configurable? ratiometric to the overall size?
-PART1CYL=11
-{ echo ,$PART1CYL,0xc,*; echo ,,,-; } \
+{ echo ,$PART1SIZE,0xc,*; echo ,,,-; } \
     | $SFDISK $IMAGE 2>&1 > /dev/null
 
 $GUESTFISH -a $IMAGE 2>&1 > /dev/null <<__EOF__
 run
 list-partitions
-mkfs-opts msdos /dev/sda1
+mkfs-opts vfat /dev/sda1
 mkfs-opts $ROOTFSTYPE /dev/sda2
 mount /dev/sda2 /
 mkdir /boot
