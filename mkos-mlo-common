@@ -162,7 +162,7 @@ truncate --size=$SIZE $IMAGE
 #       to make this configurable? ratiometric to the overall size?
 PART1CYL=11
 { echo ,$PART1CYL,0xc,*; echo ,,,-; } \
-    | $SFDISK -D -H $HEADS -S $SECTORSPERCYLINDER -C $CYLINDERS $IMAGE 2>&1 > /dev/null
+    | $SFDISK -H $HEADS -S $SECTORSPERCYLINDER -C $CYLINDERS $IMAGE 2>&1 > /dev/null
 
 $GUESTFISH -a $IMAGE 2>&1 > /dev/null <<__EOF__
 run
