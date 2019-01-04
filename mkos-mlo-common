@@ -137,7 +137,7 @@ test ! -e $TARFILE || fatal "refusing to overwrite $TARFILE"
 test ! -e $MANIFESTFILE || fatal "refusing to overwrite $MANIFESTFILE"
 
 cleanup () {
-	rm -rf $TEMPCONFIG $TEMPMOUNT $IMAGE $TARFILE
+	rm -rf $TEMPCONFIG $TEMPMOUNT $IMAGE $TARFILE $MANIFESTFILE
 }
 trap "cleanup; exit" INT TERM EXIT
 
