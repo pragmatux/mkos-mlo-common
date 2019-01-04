@@ -16,6 +16,7 @@ set -e -u
 do_cat_config=0
 do_save_tgz=0
 
+# sensible defaults
 DEFAULT_IMAGE=ptux.img
 DEFAULT_ROOTFSTYPE=ext4
 DEFAULT_DEVICE=""
@@ -44,6 +45,13 @@ fatal () {
 	exit 1
 }
 
+# note: we do all this mkos/default/var assignment in so many intermediate
+# steps so that users can provide values via MKOS_* environment variables, or
+# (in some cases) as command-line parameters; we also try to derive the tar and
+# manifest filenames from the image filename, once we know it.
+#
+# there may be a less-verbose way, but this works well enough for now
+#
 : ${ROOTFSTYPE:=${MKOS_ROOTFSTYPE:-$DEFAULT_ROOTFSTYPE}}
 : ${DEVICE:=${MKOS_DEVICE:-$DEFAULT_DEVICE}}
 : ${IMAGE:=${MKOS_IMAGE:-$DEFAULT_IMAGE}}
@@ -121,12 +129,12 @@ test -n "$ROOTFSTYPE" || fatal "$USAGE"
 #       (truncate can deal with the M, but sfdisk can't)
 SIZE=`echo ${SIZE}*1024*1024 | bc`
 
-# TODO: this probably needs more bullet-proofing
-TARFILE=`echo $IMAGE | sed s/img/tgz/g`
-test -n "$TARFILE" || fatal cannot define a tarfile
+TARFILE=${IMAGE%img}tgz
+MANIFESTFILE=${IMAGE%img}manifest
 
 test ! -e $IMAGE || fatal "refusing to overwrite $IMAGE"
 test ! -e $TARFILE || fatal "refusing to overwrite $TARFILE"
+test ! -e $MANIFESTFILE || fatal "refusing to overwrite $MANIFESTFILE"
 
 cleanup () {
 	rm -rf $TEMPCONFIG $TEMPMOUNT $IMAGE $TARFILE
@@ -139,7 +147,9 @@ TEMPMOUNT=$(mktemp -d --tmpdir mkos-${DEVICE}.mount.XXXXXXXX)
 
 GUESTFISH=/usr/bin/guestfish
 MULTISTRAP=/usr/sbin/multistrap
+SFDISK=/sbin/sfdisk
 
+# build the filesystem directory
 $MULTISTRAP -f $TEMPCONFIG -d $TEMPMOUNT
 
 echo "Creating ${TARFILE}..."
@@ -148,7 +158,8 @@ if [ $do_save_tgz -ge 1 ] ; then
     cp $TARFILE $TEMPMOUNT/root
 fi
 
-SFDISK=/sbin/sfdisk
+echo "Creating ${MANIFESTFILE}..."
+dpkg --root=$TEMPMOUNT -l > $MANIFESTFILE
 
 echo "Creating ${IMAGE}..."
 truncate --size=$SIZE $IMAGE
