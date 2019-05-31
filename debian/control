@@ -2,7 +2,7 @@ Source: mkos-mlo-common
 Section: devel
 Priority: extra
 Maintainer: Bill Gatliff <bgat@billgatliff.com>
-Build-Depends: debhelper (>= 7.0.50~)
+Build-Depends: debhelper (>= 10.0.0)
 Standards-Version: 3.9.4
 Vcs-Git: https://github.com/bgat/mkos-mlo-common.git
 Vcs-Browser: https://github.com/bgat/mkos-mlo-common.git
