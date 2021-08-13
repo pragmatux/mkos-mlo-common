@@ -21,10 +21,11 @@ DEFAULT_IMAGE=ptux.img
 DEFAULT_ROOTFSTYPE=ext4
 DEFAULT_DEVICE=""
 DEFAULT_CONFIG=""
+DEFAULT_CODENAME="unstable"
 DEFAULT_FSSIZEMB=1024
 DEFAULT_PART1SIZE=352816
 
-USAGE="${0##./}"' [-C] [-z] [-c <config-file>] [-d <size-mb>] [-p <package-name>]
+USAGE="${0##./} [-C] [-z] [-c <config-file>] [-d <size-mb>] [-p <package-name>] [-D <codename>]
   Options:
     -C            print default config template to stdout and exit
     -c <config>   use file <config> as alternate config template
@@ -32,13 +33,14 @@ USAGE="${0##./}"' [-C] [-z] [-c <config-file>] [-d <size-mb>] [-p <package-name>
     -n <image>    use <image> as the output image filename
     -p <package>  use <package> as the base package name
     -z            include ptux.tgz in output filesystem image
+    -D <codename> use <codename> instead of ${DEFAULT_CODENAME}
 
   Environment:
     The command line takes precedence over the environment.
     MKOS_CONFIG    - multistrap configuration
     MKOS_PACKAGE   - root package
     MKOS_FSSIZEMB  - default filesystem size (in MB)
-'
+    MKOS_CODENAME  - distribution codename"
 
 fatal () {
 	echo "$@" >&2
@@ -57,6 +59,7 @@ fatal () {
 : ${IMAGE:=${MKOS_IMAGE:-$DEFAULT_IMAGE}}
 : ${CONFIG:=${MKOS_CONFIG:-$DEFAULT_CONFIG}}
 : ${SIZE:=${MKOS_FSSIZEMB:-$DEFAULT_FSSIZEMB}}
+: ${CODENAME:=${MKOS_CODENAME:-$DEFAULT_CODENAME}}
 PART1SIZE=${DEFAULT_PART1SIZE}
 
 while [ "$#" != 0 ]
@@ -78,6 +81,11 @@ do
 			;;
 		-d,?*|--filesystem-size,?*)
 			SIZE="$2"
+			shift
+			shift
+			;;
+		-D,*)
+			CODENAME="$2"
 			shift
 			shift
 			;;
@@ -142,7 +150,8 @@ cleanup () {
 trap "cleanup; exit" INT TERM EXIT
 
 TEMPCONFIG=$(mktemp --tmpdir mkos-${DEVICE}.mstrap.XXXXXXXX)
-sed -e "s/{{device-package}}/$DEVICE/" $CONFIG >$TEMPCONFIG
+sed -e "s/{{device-package}}/$DEVICE/" $CONFIG \
+    | sed -e "s/{{dist-codename}}/$CODENAME/" >$TEMPCONFIG
 TEMPMOUNT=$(mktemp -d --tmpdir mkos-${DEVICE}.mount.XXXXXXXX)
 
 GUESTFISH=/usr/bin/guestfish
@@ -192,4 +201,3 @@ then
 fi
 
 trap - INT TERM EXIT
-
